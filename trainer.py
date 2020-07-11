@@ -3,7 +3,6 @@ import logging
 from ignite.contrib.handlers import CustomPeriodicEvent
 from ignite.engine import Engine, Events
 
-from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
 from tqdm import tqdm
 
 

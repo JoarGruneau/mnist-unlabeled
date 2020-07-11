@@ -1,15 +1,12 @@
 import torch
 import numpy as np
 from ignite.metrics import Metric
-from data import augumentation_transform
-from centers import get_distances, get_mappping, get_classes
-import matplotlib.pyplot as plt
+from centers import get_distances, get_classes
 
 
 class ClusteringLoss():
-    def __init__(self, centers, labeled_data, dims, classes, encoding_weight,
+    def __init__(self, labeled_data, dims, classes, encoding_weight,
                  decoding_weight, clustering_weight):
-        self.centers = centers[None, ...]
         self.labeled_data = labeled_data
         self.dims = dims
         self.classes = classes
@@ -26,24 +23,11 @@ class ClusteringLoss():
         reconstruction_loss = self.mse(decoded[..., 2:-2, 2:-2], data)
         feature_loss = self.mse(encoded_aug, encoded)
         centers = models[0](self.labeled_data[0]).detach()
-        # cluster_loss = mmd_rbf(encoded_aug, self.centers[0, ...])
 
         cluster_loss = (
             torch.sum(get_distances(centers, encoded[:, None, :], dim=2)) +
             torch.sum(get_distances(centers, encoded_aug[:, None, :], dim=2))
         ) / (2 * data.shape[0] * self.classes * self.dims)
-        # distance = get_distances(centers[None, ...],
-        #                          encoded[:, None, :],
-        #                          dim=2)
-        # min_distance = torch.min(distance, dim=1, keepdim=True)[0]
-        # # breakpoint()
-
-        # aug_distance = get_distances(centers[None, ...],
-        #                              encoded_aug[:, None, :],
-        #                              dim=2)
-
-        # cluster_loss = torch.sum(
-        #     aug_distance[distance == min_distance]) / (data.shape[0])
 
         mapping = self.labeled_data[1].cpu()
         state['mapping'] = mapping
@@ -55,11 +39,10 @@ class ClusteringLoss():
               '_recon_loss'] = reconstruction_loss.detach().cpu().item()
         state[models[0].get_name() +
               '_cluster_loss'] = cluster_loss.detach().cpu().item()
-        # # self.clustering_weight * cluster_loss +
 
-        # #
-        # loss = (self.decoding_weight * reconstruction_loss)
-        return self.decoding_weight * reconstruction_loss + self.clustering_weight * cluster_loss + feature_loss * self.encoding_weight
+        return (self.decoding_weight * reconstruction_loss +
+                self.clustering_weight * cluster_loss +
+                feature_loss * self.encoding_weight)
 
 
 class BaseMetric(Metric):
@@ -95,8 +78,7 @@ class Loss(BaseMetric):
 
 
 class Accuracy(BaseMetric):
-    def __init__(self, model_name, centers):
-        self.centers = centers
+    def __init__(self, model_name):
         super(Accuracy, self).__init__(model_name, 'acc')
         self.reset()
 
@@ -105,12 +87,8 @@ class Accuracy(BaseMetric):
         self.total = 0
 
     def update(self, output):
-        centers = output['centers']
-        features = output['features']
-        # plt.scatter(features[:, 0], features[:, 1], c='blue')
-        # plt.scatter(centers[:, 0], centers[:, 1], c='red')
-        # plt.savefig('tmp.png')
-        classes = get_classes(centers, output['mapping'], output['features'])
+        classes = get_classes(output['centers'], output['mapping'],
+                              output['features'])
         self.correct += torch.sum(classes == output['labels'].cpu())
         self.total += output['labels'].shape[0]
 
