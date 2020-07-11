@@ -61,4 +61,4 @@ trainer = ModelTrainer(models,
                        metrics,
                        log_step=1)
 
-trainer.train(400)
+trainer.train(300)
