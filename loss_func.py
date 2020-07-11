@@ -25,17 +25,29 @@ class ClusteringLoss():
         decoded = models[1](encoded_aug)
         reconstruction_loss = self.mse(decoded[..., 2:-2, 2:-2], data)
         feature_loss = self.mse(encoded_aug, encoded)
+        centers = models[0](self.labeled_data[0]).detach()
         # cluster_loss = mmd_rbf(encoded_aug, self.centers[0, ...])
-        cluster_loss = (
-            torch.sum(get_distances(self.centers, encoded[:, None, :], dim=2))
-            + torch.sum(
-                get_distances(self.centers, encoded_aug[:, None, :], dim=2))
-        ) / (2 * data.shape[0] * self.classes * self.dims)
 
-        mapping = get_mappping(self.centers[0, ...].cpu(),
-                               models[0](self.labeled_data[0]).detach().cpu(),
-                               self.labeled_data[1].cpu())
+        cluster_loss = (
+            torch.sum(get_distances(centers, encoded[:, None, :], dim=2)) +
+            torch.sum(get_distances(centers, encoded_aug[:, None, :], dim=2))
+        ) / (2 * data.shape[0] * self.classes * self.dims)
+        # distance = get_distances(centers[None, ...],
+        #                          encoded[:, None, :],
+        #                          dim=2)
+        # min_distance = torch.min(distance, dim=1, keepdim=True)[0]
+        # # breakpoint()
+
+        # aug_distance = get_distances(centers[None, ...],
+        #                              encoded_aug[:, None, :],
+        #                              dim=2)
+
+        # cluster_loss = torch.sum(
+        #     aug_distance[distance == min_distance]) / (data.shape[0])
+
+        mapping = self.labeled_data[1].cpu()
         state['mapping'] = mapping
+        state['centers'] = centers.detach().cpu()
         state['features'] = encoded.detach().cpu()
         state[models[0].get_name() +
               '_feature_loss'] = feature_loss.detach().cpu().item()
@@ -93,12 +105,12 @@ class Accuracy(BaseMetric):
         self.total = 0
 
     def update(self, output):
+        centers = output['centers']
         features = output['features']
-        plt.scatter(self.centers[:, 0], self.centers[:, 1], c='red')
-        plt.scatter(features[:, 0], features[:, 1], c='blue')
-        plt.savefig('tmp.png')
-        classes = get_classes(self.centers, output['mapping'],
-                              output['features'])
+        # plt.scatter(features[:, 0], features[:, 1], c='blue')
+        # plt.scatter(centers[:, 0], centers[:, 1], c='red')
+        # plt.savefig('tmp.png')
+        classes = get_classes(centers, output['mapping'], output['features'])
         self.correct += torch.sum(classes == output['labels'].cpu())
         self.total += output['labels'].shape[0]
 

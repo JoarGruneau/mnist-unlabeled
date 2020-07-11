@@ -40,7 +40,7 @@ def get_classes(centers, center_mappings, features):
     return classes
 
 
-def get_optimal_centers(dims, num_points, best_of=100000):
+def get_optimal_centers(dims, num_points, best_of=10000):
     points = [get_center(dims)]
     for _ in range(num_points - 1):
         candidates = []

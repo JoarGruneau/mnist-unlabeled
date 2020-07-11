@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s: %(message)s",
                     handlers=[logging.StreamHandler(sys.stdout)])
 
-DIMS = 2
+DIMS = 60
 CLASSES = 10
 LR = 0.0005
 BATCH_SIZE = 128
@@ -66,8 +66,8 @@ trainer = ModelTrainer(models,
                        generators,
                        device,
                        ClusteringLoss(centers.to(device), labeled_data, 60, 10,
-                                      0.01, 1, 12),
+                                      0.01, 1, 0),
                        metrics,
                        log_step=1)
 
-trainer.train(40)
+trainer.train(800)
