@@ -38,40 +38,47 @@ class ModelTrainer():
 
     def train(self, epochs):
         self.trainer.run(self.generators['train'], max_epochs=epochs)
-        self.pbar.close()
 
-    def evaluate(self, mode):
-        self.tester.run(self.generators[mode])
-        metrics = {**self.epochs, **self.tester.state.metrics}
-        return metrics
+    def evaluate(self):
+        self.tester.run(self.generators['test'])
+        return self.tester.state.metrics
 
     def log_epoch(self, engine):
         log_map = {
             **engine.state.metrics,
         }
         if engine.state.mode == 'train':
-            for key, value in self.epochs.items():
-                log_map[key] = value
+            log_map['epoch'] = self.epoch
         else:
             log_map['mode'] = engine.state.mode
-        log(log_map)
+        log_msg(log_map)
 
     def create_trainer(self):
         def train_step(engine, batch):
             state = get_state(batch, self.device)
-            self.loss_func(self.models, self.device, state)
-            state['dec_loss'].backward()
+            loss = self.loss_func(self.models, self.device, state)
             for optimizer in self.optimizers:
                 optimizer.zero_grad()
+            loss.backward()
+            for optimizer in self.optimizers:
                 optimizer.step()
-            state['dec_loss'] = state['dec_loss'].detach().cpu().item()
+            state['total_loss'] = loss.detach().cpu().item()
             return state
 
         def update_epoch(engine):
             self.epoch += 1
 
         def log_pbar(engine):
-            self.pbar.update(100)
+            self.pbar.update(10)
+
+        def log_trainer(engine):
+            self.pbar.close()
+            self.log_epoch(engine)
+            self.evaluate()
+            self.pbar = tqdm(initial=0,
+                             leave=False,
+                             total=len(self.generators['train']) *
+                             self.log_step)
 
         def start_trainer(engine):
             self.pbar = tqdm(initial=0,
@@ -83,22 +90,26 @@ class ModelTrainer():
         trainer = Engine(train_step)
         self.attach_metrics(trainer, 'train')
 
+        save_event = CustomPeriodicEvent(n_epochs=self.log_step)
+        save_event.attach(trainer)
+
+        trainer.add_event_handler(
+            getattr(save_event.Events,
+                    'EPOCHS_' + str(self.log_step) + '_COMPLETED'),
+            log_trainer)
+
         trainer.add_event_handler(Events.STARTED, start_trainer)
-        trainer.add_event_handler(Events.ITERATION_STARTED(every=100),
-                                  log_pbar)
+        trainer.add_event_handler(Events.ITERATION_STARTED(every=10), log_pbar)
         trainer.add_event_handler(Events.EPOCH_STARTED, update_epoch)
         return trainer
 
     def create_evaluator(self, mode):
         def eval_step(engine, batch):
             state = get_state(batch, self.device)
-            for i, model in enumerate(self.models):
-                self.change_model_mode(mode='eval')
-                self.loss_func[i](self.models, self.device, self.comission,
-                                  state, self.allocations[mode])
-                loss_key = model.get_name() + '_loss'
-                state[loss_key] = state[loss_key].detach().cpu().item()
-                self.change_model_mode(mode='train')
+            self.change_model_mode(mode='eval')
+            loss = self.loss_func(self.models, self.device, state)
+            state['total_loss'] = loss.detach().cpu().item()
+            self.change_model_mode(mode='train')
             return state
 
         def start_evaluator(engine):
@@ -144,5 +155,6 @@ def log_msg(log_map, msg=None):
 
 def get_state(batch, device):
     x, y = batch
-    x, y = x.float().to(device), y.float().to(device)
+    x, y = (x[0].float().to(device),
+            x[1].float().to(device)), y.float().to(device)
     return {'data': x, 'labels': y}

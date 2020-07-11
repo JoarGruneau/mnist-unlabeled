@@ -1,7 +1,7 @@
 from torchvision import models
 
 from torchvision.models.resnet import ResNet, BasicBlock, Bottleneck
-from torch import nn
+from torch import nn, norm
 
 
 class DecodeBlock(nn.Module):
@@ -39,7 +39,8 @@ class Encoder(ResNet):
 
     def forward(self, data):
         features = super(Encoder, self).forward(data)
-        return self.activation(features)
+        out = features / norm(features, dim=1, keepdim=True)
+        return out
 
     def get_name(self):
         return self.name
