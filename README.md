@@ -12,15 +12,18 @@ The decoder takes the coordinates on the sphere and tries to reconstruct the ori
 Let's define the mapping onto the sphere as Enc(x) and the reconstruction as Dec(Enc(x)), then can then describe the three parts of our loss function as.
 
 feature_loss = MSE(Enc(x), Enc(aug(x))
+
 We want that the encoding of x and the encoding of the augmentation of x to be near each other on the surface of the sphere.
 
 cluster_loss = (distance(Enc(x), c) + distance(Enc(aug(x)), c))/(2*dimensions of the sphere)
-This is the class average distance from x mapped onto the sphere to all the class centers. This loss will be minimum when Enc(x) and Enx(aug(x)) lies in a class center.
+
+This is the class average distance from x mapped onto the sphere to all the class centers. 
+This loss will be minimum when Enc(x) and Enx(aug(x)) lies in a class center.
 To minimize this loss ensures that our class centers will be the center of a cluster with features similar to itself on the sphere.
-Note that the value of this loss will increase as the class centers initially are spread out onto the sphere but this is not important since c is not a function of Enc(),
-and all it means is that the absolute minimum value of the loss function is growing while the class centers are seperating.
+Note that the value of this loss will increase as the class centers initially are spread out onto the sphere but this is not important since c is not a function of Enc(),and all it means is that the absolute minimum value of the loss function is growing while the class centers are seperating.
 
 reconstruction_loss = MSE(Enc(aug(x)), x)
+
 We want our mapping on the sphere to only contain the most basic information to reconstruct it back to the right class.
 We therefor compare the reconstruction of the augmentation of x to x itself.
 
