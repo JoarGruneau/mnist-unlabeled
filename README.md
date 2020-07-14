@@ -24,5 +24,10 @@ reconstruction_loss = MSE(Enc(aug(x)), x)
 We want our mapping on the sphere to only contain the most basic information to reconstruct it back to the right class.
 We therefor compare the reconstruction of the augmentation of x to x itself.
 
+We can ther compute the total loss as:
+
+loss = a*feature_loss + b*cluster_loss + c*reconstruction_loss
+Here a, b, c are constants with values 0.01, 1, 0.01
+
 # Run code
 python main.py
