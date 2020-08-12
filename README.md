@@ -4,7 +4,7 @@ This describes an unsupervised clustering network that achieves ~86-88% on the t
 The network is trained in a completely unsupervised fashion.
 Ten images of different labels are used during training to determine the centers of each class the labels are only used to assign a class to each cluster for testing purposes.
 
-## Los function
+## Loss function
 Let x be the input image and aug(x) the augmentation transform. The encoder takes an input image and maps it to the surface of a n-dimensional sphere.
 Let x_labeled be our 10 labeled samples and Enc(x_labeled) = c be the mapping of our labeled samples onto the feature sphere.
 We will refer to c as the class centers for each cluster. We will update c when the mapping Enc(x_labeled) changes but c should be considered as fixed class centers and not a function of Enx().
