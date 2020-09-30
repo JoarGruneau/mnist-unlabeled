@@ -1,6 +1,7 @@
 # mnist-unlabeled
 # Description
 This describes an unsupervised clustering network that achieves ~86-88% on the test set after 300 epochs.
+The network uses one labeled image of each class to determine the label of the cluster center but no supervised learning is used. 
 The network is trained in a completely unsupervised fashion.
 Ten images of different labels are used during training to determine the centers of each class the labels are only used to assign a class to each cluster for testing purposes.
 
